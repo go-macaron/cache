@@ -54,9 +54,9 @@ type CacheOptions struct {
 	// Name of adapter. Default is "memory".
 	Adapter string
 	// GC interval for memory adapter. Default is 60.
-	Interval int `json:"interval"`
+	Interval int
 	// Connection string for non-memory adapter.
-	Conn string `json:"conn"`
+	Conn string
 }
 
 func prepareOptions(options []CacheOptions) CacheOptions {

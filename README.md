@@ -30,8 +30,8 @@ To use redis or memcache as adapter, you should import their init functions:
 
 ```go
 import (
-	_ "github.com/macaron-contrib/cache/redis
-	_ "github.com/macaron-contrib/cache/memcache
+	_ "github.com/macaron-contrib/cache/redis"
+	_ "github.com/macaron-contrib/cache/memcache"
 )
 ```
 
