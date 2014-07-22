@@ -5,6 +5,10 @@ Middleware cache is the cache manager of [Macaron](https://github.com/Unknwon/ma
 
 [API Reference](https://gowalker.org/github.com/macaron-contrib/cache)
 
+### Installation
+
+	go get github.com/macaron-contrib/cache
+	
 ## Usage
 
 ```go

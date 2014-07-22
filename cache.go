@@ -13,6 +13,7 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
+// Package cache a middleware that provides the cache manager of Macaron.
 package cache
 
 import (
