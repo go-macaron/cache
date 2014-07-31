@@ -1,5 +1,5 @@
 // Copyright 2013 Beego Authors
-// Copyright 2014 Unknown
+// Copyright 2014 Unknwon
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -51,7 +51,7 @@ type Cache interface {
 	StartAndGC(config string) error
 }
 
-type CacheOptions struct {
+type Options struct {
 	// Name of adapter. Default is "memory".
 	Adapter string
 	// GC interval for memory adapter. Default is 60.
@@ -60,13 +60,13 @@ type CacheOptions struct {
 	Conn string
 }
 
-func prepareOptions(options []CacheOptions) CacheOptions {
-	var opt CacheOptions
+func prepareOptions(options []Options) Options {
+	var opt Options
 	if len(options) > 0 {
 		opt = options[0]
 	}
 
-	// Defaults
+	// Defaults.
 	if len(opt.Adapter) == 0 {
 		opt.Adapter = "memory"
 	}
@@ -84,17 +84,31 @@ func prepareOptions(options []CacheOptions) CacheOptions {
 	return opt
 }
 
+// Create a new cache driver by adapter name and config string.
+// config need to be correct JSON as string: {"interval":360}.
+// it will start gc automatically.
+func NewCache(adapterName, config string) (Cache, error) {
+	adapter, ok := adapters[adapterName]
+	if !ok {
+		return nil, fmt.Errorf("cache: unknown adapter name %q (forgot to import?)", adapterName)
+	}
+	if err := adapter.StartAndGC(config); err != nil {
+		return nil, err
+	}
+	return adapter, nil
+}
+
 // Cacher is a middleware that maps a cache.Cache service into the Macaron handler chain.
-// An single variadic cache.CacheOptions struct can be optionally provided to configure.
-func Cacher(options ...CacheOptions) macaron.Handler {
+// An single variadic cache.Options struct can be optionally provided to configure.
+func Cacher(options ...Options) macaron.Handler {
 	opt := prepareOptions(options)
+	cache, err := NewCache(opt.Adapter,
+		fmt.Sprintf(`{"interval":%d,"conn":"%s"}`, opt.Interval, opt.Conn))
+	if err != nil {
+		panic(err)
+	}
 	return func(ctx *macaron.Context) {
-		c, err := NewCache(opt.Adapter,
-			fmt.Sprintf(`{"interval":%d,"conn":"%s"}`, opt.Interval, opt.Conn))
-		if err != nil {
-			panic(err)
-		}
-		ctx.Map(c)
+		ctx.Map(cache)
 	}
 }
 
@@ -111,19 +125,4 @@ func Register(name string, adapter Cache) {
 		panic("cache: Register called twice for adapter " + name)
 	}
 	adapters[name] = adapter
-}
-
-// Create a new cache driver by adapter name and config string.
-// config need to be correct JSON as string: {"interval":360}.
-// it will start gc automatically.
-func NewCache(adapterName, config string) (Cache, error) {
-	adapter, ok := adapters[adapterName]
-	if !ok {
-		return nil, fmt.Errorf("cache: unknown adapter name %q (forgot to import?)", adapterName)
-	}
-	err := adapter.StartAndGC(config)
-	if err != nil {
-		return nil, err
-	}
-	return adapter, nil
 }

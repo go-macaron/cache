@@ -1,4 +1,5 @@
 // Copyright 2013 Beego Authors
+// Copyright 2014 Unknwon
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -20,11 +21,11 @@ import (
 )
 
 func TestCache(t *testing.T) {
-	bm, err := NewCache("memory", `{"interval":20}`)
+	bm, err := NewCache("memory", `{"interval":5}`)
 	if err != nil {
 		t.Error("init err")
 	}
-	if err = bm.Put("astaxie", 1, 10); err != nil {
+	if err = bm.Put("astaxie", 1, 5); err != nil {
 		t.Error("set Error", err)
 	}
 	if !bm.IsExist("astaxie") {
@@ -35,7 +36,7 @@ func TestCache(t *testing.T) {
 		t.Error("get err")
 	}
 
-	time.Sleep(30 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	if bm.IsExist("astaxie") {
 		t.Error("check err")
