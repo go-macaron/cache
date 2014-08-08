@@ -16,6 +16,8 @@
 // Package cache a middleware that provides the cache manager of Macaron.
 package cache
 
+// NOTE: last sync b1b4dbb on Aug 08, 2014.
+
 import (
 	"fmt"
 
@@ -25,7 +27,7 @@ import (
 // Cache interface contains all behaviors for cache adapter.
 // usage:
 //	cache.Register("file",cache.NewFileCache()) // this operation is run in init method of file.go.
-//	c := cache.NewCache("file","{....}")
+//	c, err := cache.NewCache("file","{....}")
 //	c.Put("key",value,3600)
 //	v := c.Get("key")
 //
