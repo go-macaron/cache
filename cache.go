@@ -16,7 +16,7 @@
 // Package cache a middleware that provides the cache manager of Macaron.
 package cache
 
-// NOTE: last sync b1b4dbb on Aug 08, 2014.
+// NOTE: last sync a144769 on Aug 18, 2014.
 
 import (
 	"fmt"
