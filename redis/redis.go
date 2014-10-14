@@ -128,19 +128,21 @@ func (rc *RedisCache) ClearAll() error {
 // the cache item in redis are stored forever,
 // so no gc operation.
 func (rc *RedisCache) StartAndGC(config string) error {
-	var cf map[string]string
-	json.Unmarshal([]byte(config), &cf)
+	var cf map[string]interface{}
+	if err := json.Unmarshal([]byte(config), &cf); err != nil {
+		return err
+	}
 
 	if _, ok := cf["key"]; !ok {
 		cf["key"] = DefaultKey
 	}
 
 	if _, ok := cf["conn"]; !ok {
-		return errors.New("config has no conn key")
+		return errors.New("redis: config has no conn key")
 	}
 
-	rc.key = cf["key"]
-	rc.conninfo = cf["conn"]
+	rc.key = cf["key"].(string)
+	rc.conninfo = cf["conn"].(string)
 	rc.connectInit()
 
 	c := rc.p.Get()
