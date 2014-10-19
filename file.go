@@ -1,4 +1,5 @@
 // Copyright 2013 Beego Authors
+// Copyright 2014 Unknwon
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -21,7 +22,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -110,9 +110,8 @@ func (this *FileCache) Init() {
 
 // get cached file name. it's md5 encoded.
 func (this *FileCache) getCacheFileName(key string) string {
-	m := md5.New()
-	io.WriteString(m, key)
-	keyMd5 := hex.EncodeToString(m.Sum(nil))
+	m := md5.Sum([]byte(key))
+	keyMd5 := hex.EncodeToString(m[:])
 	cachePath := this.CachePath
 	//fmt.Println("cachepath : " , cachePath)
 	//fmt.Println("md5" , keyMd5);
