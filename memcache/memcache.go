@@ -138,12 +138,15 @@ func (rc *MemcacheCache) ClearAll() error {
 // config string is like {"conn":"connection info"}.
 // if connecting error, return.
 func (rc *MemcacheCache) StartAndGC(config string) error {
-	var cf map[string]string
-	json.Unmarshal([]byte(config), &cf)
-	if _, ok := cf["conn"]; !ok {
-		return errors.New("config has no conn key")
+	var cf map[string]interface{}
+	if err := json.Unmarshal([]byte(config), &cf); err != nil {
+		return err
 	}
-	rc.conninfo = cf["conn"]
+
+	if _, ok := cf["conn"]; !ok {
+		return errors.New("memcache: config has no conn key")
+	}
+	rc.conninfo = cf["conn"].(string)
 	var err error
 	if rc.c != nil {
 		rc.c, err = rc.connectInit()
