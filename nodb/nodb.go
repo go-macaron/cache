@@ -136,17 +136,17 @@ func (rc *NodbCache) new() error {
 }
 
 // start nodbcache adapter.
-// config string is like {"path":"./cur.db", "interval":10}.//seconds
+// config string is like {"conn":"./cur.db", "interval":10}.//seconds
 func (rc *NodbCache) StartAndGC(config string) error {
 	var cf map[string]interface{}
 	if err := json.Unmarshal([]byte(config), &cf); err != nil {
 		return err
 	}
 
-	if _, ok := cf["path"]; !ok {
-		return errors.New("nodbcache: config has no path key")
+	if _, ok := cf["conn"]; !ok {
+		return errors.New("nodbcache: config has no conn key")
 	}
-	rc.filepath = cf["path"].(string)
+	rc.filepath = cf["conn"].(string)
 
 	return rc.new()
 }

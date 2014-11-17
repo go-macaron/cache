@@ -27,7 +27,7 @@ func toInt(v string) (int64, error) {
 }
 
 func TestNodbCache(t *testing.T) {
-	bm, err := cache.NewCache("nodb", `{"path": "./cache"}`)
+	bm, err := cache.NewCache("nodb", `{"conn": "./cache"}`)
 	if err != nil {
 		t.Error("init err", err)
 	}
