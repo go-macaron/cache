@@ -1,0 +1,5 @@
+=============== Nov 17, 2014 (CST) ===============
+18:08:27.001120 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock D·DeletedEntry L·Level Q·SeqNum T·TimeElapsed
+18:08:27.001588 db@open opening
+18:08:27.004949 db@janitor F·2 G·0
+18:08:27.004968 db@open done T·3.365564ms
