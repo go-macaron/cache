@@ -1,7 +1,7 @@
 cache
 =====
 
-Middleware cache is the cache manager of [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, redis, and memcache.
+Middleware cache is the cache manager of [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, redis, memcache and [nodb](https://github.com/macaron-contrib/cache/nodb).
 
 [API Reference](https://gowalker.org/github.com/macaron-contrib/cache)
 
@@ -30,12 +30,13 @@ func main() {
 }
 ```
 
-To use redis or memcache as adapter, you should import their init functions:
+To use redis, memcache or nodb as adapter, you should import their init functions:
 
 ```go
 import (
 	_ "github.com/macaron-contrib/cache/redis"
 	_ "github.com/macaron-contrib/cache/memcache"
+	_ "github.com/macaron-contrib/cache/nodb"
 )
 ```
 
