@@ -1,6 +1,6 @@
 ## Nodb cache provider
 
-This provider is based on [Nodb](github.com/lunny/nodb).
+This provider is based on [Nodb](https://github.com/lunny/nodb).
 
 ## Usage
 
