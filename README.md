@@ -1,7 +1,7 @@
 cache
 =====
 
-Middleware cache is the cache manager of [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, redis, memcache and [nodb](https://github.com/macaron-contrib/cache/nodb).
+Middleware cache is the cache manager of [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, redis, memcache and [nodb](https://github.com/macaron-contrib/cache/tree/master/nodb).
 
 [API Reference](https://gowalker.org/github.com/macaron-contrib/cache)
 
