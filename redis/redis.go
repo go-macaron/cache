@@ -1,4 +1,5 @@
 // Copyright 2013 Beego Authors
+// Copyright 2014 Unknwon
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -15,8 +16,6 @@
 package cache
 
 import (
-	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/beego/redigo/redis"
@@ -107,7 +106,7 @@ func (rc *RedisCache) Decr(key string) error {
 }
 
 // clean all cache in redis. delete this redis collection.
-func (rc *RedisCache) ClearAll() error {
+func (rc *RedisCache) Flush() error {
 	cachedKeys, err := redis.Strings(rc.do("HKEYS", rc.key))
 	for _, str := range cachedKeys {
 		_, err := rc.do("DEL", str)
@@ -123,22 +122,10 @@ func (rc *RedisCache) ClearAll() error {
 // config is like {"key":"collection key","conn":"connection info"}
 // the cache item in redis are stored forever,
 // so no gc operation.
-func (rc *RedisCache) StartAndGC(config string) error {
-	var cf map[string]interface{}
-	if err := json.Unmarshal([]byte(config), &cf); err != nil {
-		return err
-	}
+func (rc *RedisCache) StartAndGC(opt cache.Options) error {
 
-	if _, ok := cf["key"]; !ok {
-		cf["key"] = DefaultKey
-	}
-
-	if _, ok := cf["conn"]; !ok {
-		return errors.New("redis: config has no conn key")
-	}
-
-	rc.key = cf["key"].(string)
-	rc.conninfo = cf["conn"].(string)
+	rc.key = DefaultKey
+	rc.conninfo = opt.AdapterConfig
 	rc.connectInit()
 
 	c := rc.p.Get()
@@ -164,6 +151,7 @@ func (rc *RedisCache) connectInit() {
 			return c, nil
 		},
 	}
+
 }
 
 func init() {

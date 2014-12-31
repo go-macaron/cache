@@ -24,42 +24,42 @@ import (
 	"github.com/Unknwon/macaron"
 )
 
-// Cache interface contains all behaviors for cache adapter.
-// usage:
-//	cache.Register("file",cache.NewFileCache()) // this operation is run in init method of file.go.
-//	c, err := cache.NewCache("file","{....}")
-//	c.Put("key",value,3600)
-//	v := c.Get("key")
-//
-//	c.Incr("counter")  // now is 1
-//	c.Incr("counter")  // now is 2
-//	count := c.Get("counter").(int)
-type Cache interface {
-	// get cached value by key.
-	Get(key string) interface{}
-	// set cached value with key and expire time.
-	Put(key string, val interface{}, timeout int64) error
-	// delete cached value by key.
-	Delete(key string) error
-	// increase cached int value by key, as a counter.
-	Incr(key string) error
-	// decrease cached int value by key, as a counter.
-	Decr(key string) error
-	// check if cached value exists or not.
-	IsExist(key string) bool
-	// clear all cache.
-	ClearAll() error
-	// start gc routine based on config string settings.
-	StartAndGC(config string) error
+const _VERSION = "0.0.1"
+
+func Version() string {
+	return _VERSION
 }
 
+// Cache is the interface that operates the cache data.
+type Cache interface {
+	// Put puts value into cache with key and expire time.
+	Put(key string, val interface{}, timeout int64) error
+	// Get gets cached value by given key.
+	Get(key string) interface{}
+	// Delete deletes cached value by given key.
+	Delete(key string) error
+	// Incr increases cached int-type value by given key as a counter.
+	Incr(key string) error
+	// Decr decreases cached int-type value by given key as a counter.
+	Decr(key string) error
+	// IsExist returns true if cached value exists.
+	IsExist(key string) bool
+	// Flush deletes all cached data.
+	Flush() error
+	// StartAndGC starts GC routine based on config string settings.
+	StartAndGC(opt Options) error
+}
+
+// Options represents a struct for specifying configuration options for the cache middleware.
 type Options struct {
 	// Name of adapter. Default is "memory".
 	Adapter string
-	// GC interval for memory adapter. Default is 60.
+	// Adapter configuration, it's corresponding to adapter.
+	AdapterConfig string
+	// GC interval time in seconds. Default is 60.
 	Interval int
-	// Connection string for non-memory adapter.
-	Conn string
+	// Configuration section name. Default is "cache".
+	Section string
 }
 
 func prepareOptions(options []Options) Options {
@@ -67,45 +67,40 @@ func prepareOptions(options []Options) Options {
 	if len(options) > 0 {
 		opt = options[0]
 	}
-
-	// Defaults.
-	if len(opt.Adapter) == 0 {
-		opt.Adapter = "memory"
+	if len(opt.Section) == 0 {
+		opt.Section = "cache"
 	}
+	sec := macaron.Config().Section(opt.Section)
 
+	if len(opt.Adapter) == 0 {
+		opt.Adapter = sec.Key("ADAPTER").MustString("memory")
+	}
 	if opt.Adapter == "memory" {
 		if opt.Interval == 0 {
-			opt.Interval = 60
+			opt.Interval = sec.Key("INTERVAL").MustInt(60)
 		}
-	} else {
-		if len(opt.Conn) == 0 {
-			panic("no connection string is given for non-memory cache adapter")
-		}
+	} else if len(opt.AdapterConfig) == 0 {
+		opt.AdapterConfig = sec.Key("ADAPTER_CONFIG").String()
 	}
 
 	return opt
 }
 
-// Create a new cache driver by adapter name and config string.
-// config need to be correct JSON as string: {"interval":360}.
-// it will start gc automatically.
-func NewCache(adapterName, config string) (Cache, error) {
-	adapter, ok := adapters[adapterName]
+// NewCacher creates and returns a new cacher by given adapter name and configuration.
+// It panics when given adapter isn't registered and starts GC automatically.
+func NewCacher(name string, opt Options) (Cache, error) {
+	adapter, ok := adapters[name]
 	if !ok {
-		return nil, fmt.Errorf("cache: unknown adapter name %q (forgot to import?)", adapterName)
+		return nil, fmt.Errorf("cache: unknown adapter '%s'(forgot to import?)", name)
 	}
-	if err := adapter.StartAndGC(config); err != nil {
-		return nil, err
-	}
-	return adapter, nil
+	return adapter, adapter.StartAndGC(opt)
 }
 
 // Cacher is a middleware that maps a cache.Cache service into the Macaron handler chain.
 // An single variadic cache.Options struct can be optionally provided to configure.
 func Cacher(options ...Options) macaron.Handler {
 	opt := prepareOptions(options)
-	cache, err := NewCache(opt.Adapter,
-		fmt.Sprintf(`{"interval":%d,"conn":"%s"}`, opt.Interval, opt.Conn))
+	cache, err := NewCacher(opt.Adapter, opt)
 	if err != nil {
 		panic(err)
 	}
@@ -116,15 +111,13 @@ func Cacher(options ...Options) macaron.Handler {
 
 var adapters = make(map[string]Cache)
 
-// Register makes a cache adapter available by the adapter name.
-// If Register is called twice with the same name or if driver is nil,
-// it panics.
+// Register registers a adapter.
 func Register(name string, adapter Cache) {
 	if adapter == nil {
-		panic("cache: Register adapter is nil")
+		panic("cache: cannot register adapter with nil value")
 	}
 	if _, dup := adapters[name]; dup {
-		panic("cache: Register called twice for adapter " + name)
+		panic(fmt.Errorf("cache: cannot register adapter '%s' twice", name))
 	}
 	adapters[name] = adapter
 }

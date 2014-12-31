@@ -15,7 +15,6 @@
 package cache
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -109,7 +108,7 @@ func (rc *NodbCache) IsExist(key string) bool {
 }
 
 // clear all cached in nodb.
-func (rc *NodbCache) ClearAll() error {
+func (rc *NodbCache) Flush() error {
 	os.RemoveAll(rc.filepath)
 
 	rc.dbs.Close()
@@ -137,16 +136,8 @@ func (rc *NodbCache) new() error {
 
 // start nodbcache adapter.
 // config string is like {"conn":"./cur.db", "interval":10}.//seconds
-func (rc *NodbCache) StartAndGC(config string) error {
-	var cf map[string]interface{}
-	if err := json.Unmarshal([]byte(config), &cf); err != nil {
-		return err
-	}
-
-	if _, ok := cf["conn"]; !ok {
-		return errors.New("nodbcache: config has no conn key")
-	}
-	rc.filepath = cf["conn"].(string)
+func (rc *NodbCache) StartAndGC(opt cache.Options) error {
+	rc.filepath = opt.AdapterConfig
 
 	return rc.new()
 }

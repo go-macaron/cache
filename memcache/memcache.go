@@ -1,4 +1,5 @@
 // Copyright 2013 Beego Authors
+// Copyright 2014 Unknwon
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -15,7 +16,6 @@
 package cache
 
 import (
-	"encoding/json"
 	"errors"
 
 	"github.com/beego/memcache"
@@ -122,7 +122,7 @@ func (rc *MemcacheCache) IsExist(key string) bool {
 }
 
 // clear all cached in memcache.
-func (rc *MemcacheCache) ClearAll() error {
+func (rc *MemcacheCache) Flush() error {
 	if rc.c == nil {
 		var err error
 		rc.c, err = rc.connectInit()
@@ -137,16 +137,8 @@ func (rc *MemcacheCache) ClearAll() error {
 // start memcache adapter.
 // config string is like {"conn":"connection info"}.
 // if connecting error, return.
-func (rc *MemcacheCache) StartAndGC(config string) error {
-	var cf map[string]interface{}
-	if err := json.Unmarshal([]byte(config), &cf); err != nil {
-		return err
-	}
-
-	if _, ok := cf["conn"]; !ok {
-		return errors.New("memcache: config has no conn key")
-	}
-	rc.conninfo = cf["conn"].(string)
+func (rc *MemcacheCache) StartAndGC(opt cache.Options) error {
+	rc.conninfo = opt.AdapterConfig
 	var err error
 	if rc.c != nil {
 		rc.c, err = rc.connectInit()
