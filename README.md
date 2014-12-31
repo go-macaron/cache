@@ -1,58 +1,16 @@
-cache
+cache [![Build Status](https://drone.io/github.com/macaron-contrib/cache/status.png)](https://drone.io/github.com/macaron-contrib/cache/latest) [![](http://gocover.io/_badge/github.com/macaron-contrib/cache)](http://gocover.io/github.com/macaron-contrib/cache)
 =====
 
-Middleware cache is the cache manager of [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, redis, memcache and [nodb](https://github.com/macaron-contrib/cache/tree/master/nodb).
-
-[API Reference](https://gowalker.org/github.com/macaron-contrib/cache)
+Middleware cache provides cache management for [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, file, Redis, Memcache, and Nodb.
 
 ### Installation
 
 	go get github.com/macaron-contrib/cache
 	
-## Usage
+## Getting Help
 
-```go
-import (
-	"github.com/Unknwon/macaron"
-	"github.com/macaron-contrib/cache"
-)
-
-func main() {
-  	m := macaron.Classic()
-  	m.Use(cache.Cacher())
-	
-	m.Get("/", func(c cache.Cache) string {
-		c.Put("cache", "cache middleware", 120)
-		return c.Get("cache")
-	})
-
-	m.Run()
-}
-```
-
-To use redis, memcache or nodb as adapter, you should import their init functions:
-
-```go
-import (
-	_ "github.com/macaron-contrib/cache/redis"
-	_ "github.com/macaron-contrib/cache/memcache"
-	_ "github.com/macaron-contrib/cache/nodb"
-)
-```
-
-## Options
-
-`cache.Cacher` comes with a variety of configuration options:
-
-```go
-// ...
-m.Use(cahce.Cacher(cache.CacheOptions{
-	Adapter:	"memory", // Name of adapter.
-	Interval:	60, // GC interval for memory adapter.
-	Conn:		"127.0.0.1:11211", // Connection string for non-memory adapter.
-}))
-// ...
-```
+- [API Reference](https://gowalker.org/github.com/macaron-contrib/cache)
+- [Documentation](http://macaron.gogs.io/docs/middlewares/cache)
 
 ## License
 

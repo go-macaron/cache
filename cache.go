@@ -13,7 +13,7 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
-// Package cache a middleware that provides the cache manager of Macaron.
+// Package cache is a middleware that provides the cache management of Macaron.
 package cache
 
 // NOTE: last sync d3ab157 on Dec 19, 2014.
@@ -80,7 +80,7 @@ func prepareOptions(options []Options) Options {
 			opt.Interval = sec.Key("INTERVAL").MustInt(60)
 		}
 	} else if len(opt.AdapterConfig) == 0 {
-		opt.AdapterConfig = sec.Key("ADAPTER_CONFIG").String()
+		opt.AdapterConfig = sec.Key("ADAPTER_CONFIG").MustString("data/caches")
 	}
 
 	return opt
