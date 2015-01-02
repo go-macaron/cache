@@ -178,7 +178,7 @@ func (c *FileCacher) startGC() {
 		log.Printf("error garbage collecting cache files: %v", err)
 	}
 
-	time.AfterFunc(time.Duration(c.interval), func() { c.startGC() })
+	time.AfterFunc(time.Duration(c.interval)*time.Second, func() { c.startGC() })
 }
 
 // StartAndGC starts GC routine based on config string settings.

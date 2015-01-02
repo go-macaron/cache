@@ -150,11 +150,11 @@ func (c *MemoryCacher) startGC() {
 		}
 	}
 
-	time.AfterFunc(time.Duration(c.interval), func() { c.startGC() })
+	time.AfterFunc(time.Duration(c.interval)*time.Second, func() { c.startGC() })
 }
 
 // StartAndGC starts GC routine based on config string settings.
-func (c *MemoryCacher) StartAndGC(opt Options) (err error) {
+func (c *MemoryCacher) StartAndGC(opt Options) error {
 	c.interval = opt.Interval
 	go c.startGC()
 	return nil
