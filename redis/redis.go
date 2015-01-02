@@ -16,144 +16,142 @@
 package cache
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
-	"github.com/beego/redigo/redis"
+	"github.com/Unknwon/com"
+	"gopkg.in/ini.v1"
+	"gopkg.in/redis.v2"
 
 	"github.com/macaron-contrib/cache"
 )
 
-var (
-	// the collection name of redis for cache adapter.
-	DefaultKey string = "MacaronRedis"
-)
+// FIXME: should I use Gob to support all types?
 
-// Redis cache adapter.
-type RedisCache struct {
-	p        *redis.Pool // redis connection pool
-	conninfo string
-	key      string
+var defaultHSetName = "MacaronCache"
+
+// MemoryCacher represents a redis cache adapter implementation.
+type RedisCacher struct {
+	c *redis.Client
 }
 
-// create new redis cache with default collection name.
-func NewRedisCache() *RedisCache {
-	return &RedisCache{key: DefaultKey}
+// NewMemoryCacher creates and returns a new redis cacher.
+func NewRedisCacher() *RedisCacher {
+	return &RedisCacher{}
 }
 
-// actually do the redis cmds
-func (rc *RedisCache) do(commandName string, args ...interface{}) (reply interface{}, err error) {
-	c := rc.p.Get()
-	defer c.Close()
-
-	return c.Do(commandName, args...)
-}
-
-// Get cache from redis.
-func (rc *RedisCache) Get(key string) interface{} {
-	v, err := rc.do("GET", key)
-	if err != nil {
-		return nil
-	}
-
-	return v
-}
-
-// put cache to redis.
-func (rc *RedisCache) Put(key string, val interface{}, timeout int64) error {
-	_, err := rc.do("SETEX", key, timeout, val)
-	if err != nil {
-		return nil
-	}
-	_, err = rc.do("HSET", rc.key, key, true)
-	return err
-}
-
-// delete cache in redis.
-func (rc *RedisCache) Delete(key string) error {
-	_, err := rc.do("DEL", key)
-	if err != nil {
-		return nil
-	}
-	_, err = rc.do("HDEL", rc.key, key)
-	return err
-}
-
-// check cache's existence in redis.
-func (rc *RedisCache) IsExist(key string) bool {
-	v, err := redis.Bool(rc.do("EXISTS", key))
-	if err != nil {
-		return false
-	}
-	if v == false {
-		_, err := rc.do("HDEL", rc.key, key)
-		if err != nil {
-			return false
+// Put puts value into cache with key and expire time.
+// If expired is 0, it lives forever.
+func (c *RedisCacher) Put(key string, val interface{}, expire int64) (err error) {
+	if expire == 0 {
+		if err = c.c.Set(key, com.ToStr(val)).Err(); err != nil {
+			return err
 		}
+		return c.c.HSet(defaultHSetName, key, "0").Err()
 	}
-	return v
-}
 
-// increase counter in redis.
-func (rc *RedisCache) Incr(key string) error {
-	_, err := redis.Bool(rc.do("INCRBY", key, 1))
-	return err
-}
-
-// decrease counter in redis.
-func (rc *RedisCache) Decr(key string) error {
-	_, err := redis.Bool(rc.do("INCRBY", key, -1))
-	return err
-}
-
-// clean all cache in redis. delete this redis collection.
-func (rc *RedisCache) Flush() error {
-	cachedKeys, err := redis.Strings(rc.do("HKEYS", rc.key))
-	for _, str := range cachedKeys {
-		_, err := rc.do("DEL", str)
-		if err != nil {
-			return nil
-		}
+	dur, err := time.ParseDuration(com.ToStr(expire) + "s")
+	if err != nil {
+		return err
 	}
-	_, err = rc.do("DEL", rc.key)
-	return err
+	if err = c.c.SetEx(key, dur, com.ToStr(val)).Err(); err != nil {
+		return err
+	}
+	return c.c.HSet(defaultHSetName, key, com.ToStr(time.Now().Add(dur).Unix())).Err()
 }
 
-// start redis cache adapter.
-// config is like {"key":"collection key","conn":"connection info"}
-// the cache item in redis are stored forever,
-// so no gc operation.
-func (rc *RedisCache) StartAndGC(opt cache.Options) error {
+// Get gets cached value by given key.
+func (c *RedisCacher) Get(key string) interface{} {
+	val, err := c.c.Get(key).Result()
+	if err != nil {
+		return nil
+	}
+	return val
+}
 
-	rc.key = DefaultKey
-	rc.conninfo = opt.AdapterConfig
-	rc.connectInit()
+// Delete deletes cached value by given key.
+func (c *RedisCacher) Delete(key string) error {
+	if err := c.c.Del(key).Err(); err != nil {
+		return err
+	}
+	return c.c.HDel(defaultHSetName, key).Err()
+}
 
-	c := rc.p.Get()
-	defer c.Close()
-	if err := c.Err(); err != nil {
+// Incr increases cached int-type value by given key as a counter.
+func (c *RedisCacher) Incr(key string) error {
+	if !c.IsExist(key) {
+		return fmt.Errorf("key '%s' not exist", key)
+	}
+	return c.c.Incr(key).Err()
+}
+
+// Decr decreases cached int-type value by given key as a counter.
+func (c *RedisCacher) Decr(key string) error {
+	if !c.IsExist(key) {
+		return fmt.Errorf("key '%s' not exist", key)
+	}
+	return c.c.Decr(key).Err()
+}
+
+// IsExist returns true if cached value exists.
+func (c *RedisCacher) IsExist(key string) bool {
+	if c.c.Exists(key).Val() {
+		return true
+	}
+	c.c.HDel(defaultHSetName, key)
+	return false
+}
+
+// Flush deletes all cached data.
+func (c *RedisCacher) Flush() error {
+	keys, err := c.c.HKeys(defaultHSetName).Result()
+	if err != nil {
+		return err
+	}
+	if err = c.c.Del(keys...).Err(); err != nil {
+		return err
+	}
+	return c.c.Del(defaultHSetName).Err()
+}
+
+// StartAndGC starts GC routine based on config string settings.
+// AdapterConfig: network=tcp,addr=:6379,password=macaron,db=0,pool_size=100,idle_timeout=180
+func (c *RedisCacher) StartAndGC(opts cache.Options) error {
+	cfg, err := ini.Load([]byte(strings.Replace(opts.AdapterConfig, ",", "\n", -1)))
+	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-// connect to redis.
-func (rc *RedisCache) connectInit() {
-	// initialize a new pool
-	rc.p = &redis.Pool{
-		MaxIdle:     3,
-		IdleTimeout: 180 * time.Second,
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", rc.conninfo)
+	opt := &redis.Options{
+		Network: "tcp",
+	}
+	for k, v := range cfg.Section("").KeysHash() {
+		switch k {
+		case "network":
+			opt.Network = v
+		case "addr":
+			opt.Addr = v
+		case "password":
+			opt.Password = v
+		case "db":
+			opt.DB = com.StrTo(v).MustInt64()
+		case "pool_size":
+			opt.PoolSize = com.StrTo(v).MustInt()
+		case "idle_timeout":
+			opt.IdleTimeout, err = time.ParseDuration(v + "s")
 			if err != nil {
-				return nil, err
+				return fmt.Errorf("error parsing idle timeout: %v", err)
 			}
-			return c, nil
-		},
+		default:
+			return fmt.Errorf("session/redis: unsupported option '%s'", k)
+		}
 	}
 
+	c.c = redis.NewClient(opt)
+	return c.c.Ping().Err()
 }
 
 func init() {
-	cache.Register("redis", NewRedisCache())
+	cache.Register("redis", NewRedisCacher())
 }

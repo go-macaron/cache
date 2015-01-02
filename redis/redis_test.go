@@ -1,4 +1,4 @@
-// Copyright 2013 Beego Authors
+// Copyright 2014 Unknwon
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -14,72 +14,89 @@
 
 package cache
 
-// import (
-// 	"testing"
-// 	"time"
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 
-// 	"github.com/beego/redigo/redis"
+	"github.com/Unknwon/com"
+	"github.com/Unknwon/macaron"
+	. "github.com/smartystreets/goconvey/convey"
 
-// 	"github.com/macaron-contrib/cache"
-// )
+	"github.com/macaron-contrib/cache"
+)
 
-// func TestRedisCache(t *testing.T) {
-// 	bm, err := cache.NewCacher("redis", cache.Options{AdapterConfig: "127.0.0.1:6379"})
-// 	if err != nil {
-// 		t.Error("init err")
-// 	}
-// 	if err = bm.Put("astaxie", 1, 10); err != nil {
-// 		t.Error("set Error", err)
-// 	}
-// 	if !bm.IsExist("astaxie") {
-// 		t.Error("check err")
-// 	}
+func Test_RedisCacher(t *testing.T) {
+	Convey("Test redis cache adapter", t, func() {
+		opt := cache.Options{
+			Adapter:       "redis",
+			AdapterConfig: "addr=:6379",
+		}
 
-// 	time.Sleep(10 * time.Second)
+		Convey("Basic operations", func() {
+			m := macaron.New()
+			m.Use(cache.Cacher(opt))
 
-// 	if bm.IsExist("astaxie") {
-// 		t.Error("check err")
-// 	}
-// 	if err = bm.Put("astaxie", 1, 10); err != nil {
-// 		t.Error("set Error", err)
-// 	}
+			m.Get("/", func(c cache.Cache) {
+				So(c.Put("uname", "unknwon", 1), ShouldBeNil)
+				So(c.Put("uname2", "unknwon2", 1), ShouldBeNil)
+				So(c.IsExist("uname"), ShouldBeTrue)
 
-// 	if v, _ := redis.Int(bm.Get("astaxie"), err); v != 1 {
-// 		t.Error("get err")
-// 	}
+				So(c.Get("404"), ShouldBeNil)
+				So(c.Get("uname").(string), ShouldEqual, "unknwon")
 
-// 	if err = bm.Incr("astaxie"); err != nil {
-// 		t.Error("Incr Error", err)
-// 	}
+				time.Sleep(1 * time.Second)
+				So(c.Get("uname"), ShouldBeNil)
+				time.Sleep(1 * time.Second)
+				So(c.Get("uname2"), ShouldBeNil)
 
-// 	if v, _ := redis.Int(bm.Get("astaxie"), err); v != 2 {
-// 		t.Error("get err")
-// 	}
+				So(c.Put("uname", "unknwon", 0), ShouldBeNil)
+				So(c.Delete("uname"), ShouldBeNil)
+				So(c.Get("uname"), ShouldBeNil)
 
-// 	if err = bm.Decr("astaxie"); err != nil {
-// 		t.Error("Decr Error", err)
-// 	}
+				So(c.Put("uname", "unknwon", 0), ShouldBeNil)
+				So(c.Flush(), ShouldBeNil)
+				So(c.Get("uname"), ShouldBeNil)
+			})
 
-// 	if v, _ := redis.Int(bm.Get("astaxie"), err); v != 1 {
-// 		t.Error("get err")
-// 	}
-// 	bm.Delete("astaxie")
-// 	if bm.IsExist("astaxie") {
-// 		t.Error("delete err")
-// 	}
-// 	//test string
-// 	if err = bm.Put("astaxie", "author", 10); err != nil {
-// 		t.Error("set Error", err)
-// 	}
-// 	if !bm.IsExist("astaxie") {
-// 		t.Error("check err")
-// 	}
+			resp := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", "/", nil)
+			So(err, ShouldBeNil)
+			m.ServeHTTP(resp, req)
+		})
 
-// 	if v, _ := redis.String(bm.Get("astaxie"), err); v != "author" {
-// 		t.Error("get err")
-// 	}
-// 	// test clear all
-// 	if err = bm.Flush(); err != nil {
-// 		t.Error("clear all err")
-// 	}
-// }
+		Convey("Increase and decrease operations", func() {
+			m := macaron.New()
+			m.Use(cache.Cacher(opt))
+
+			m.Get("/", func(c cache.Cache) {
+				So(c.Incr("404"), ShouldNotBeNil)
+				So(c.Decr("404"), ShouldNotBeNil)
+
+				So(c.Put("int", 0, 0), ShouldBeNil)
+				So(c.Put("int64", int64(0), 0), ShouldBeNil)
+				So(c.Put("string", "hi", 0), ShouldBeNil)
+
+				So(c.Incr("int"), ShouldBeNil)
+				So(c.Incr("int64"), ShouldBeNil)
+
+				So(c.Decr("int"), ShouldBeNil)
+				So(c.Decr("int64"), ShouldBeNil)
+
+				So(c.Incr("string"), ShouldNotBeNil)
+				So(c.Decr("string"), ShouldNotBeNil)
+
+				So(com.StrTo(c.Get("int").(string)).MustInt(), ShouldEqual, 0)
+				So(com.StrTo(c.Get("int64").(string)).MustInt64(), ShouldEqual, 0)
+
+				So(c.Flush(), ShouldBeNil)
+			})
+
+			resp := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", "/", nil)
+			So(err, ShouldBeNil)
+			m.ServeHTTP(resp, req)
+		})
+	})
+}
