@@ -17,6 +17,7 @@ package cache
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -33,7 +34,8 @@ var defaultHSetName = "MacaronCache"
 
 // MemoryCacher represents a redis cache adapter implementation.
 type RedisCacher struct {
-	c *redis.Client
+	c        *redis.Client
+	interval int
 }
 
 // NewMemoryCacher creates and returns a new redis cacher.
@@ -115,9 +117,38 @@ func (c *RedisCacher) Flush() error {
 	return c.c.Del(defaultHSetName).Err()
 }
 
+func (c *RedisCacher) startGC() {
+	if c.interval < 1 {
+		return
+	}
+
+	kvs, err := c.c.HGetAllMap(defaultHSetName).Result()
+	if err != nil {
+		log.Printf("cache/redis: error garbage collecting(get): %v", err)
+		return
+	}
+
+	now := time.Now().Unix()
+	for k, v := range kvs {
+		expire := com.StrTo(v).MustInt64()
+		if expire == 0 || now < expire {
+			continue
+		}
+
+		if err = c.Delete(k); err != nil {
+			log.Printf("cache/redis: error garbage collecting(delete): %v", err)
+			continue
+		}
+	}
+
+	time.AfterFunc(time.Duration(c.interval)*time.Second, func() { c.startGC() })
+}
+
 // StartAndGC starts GC routine based on config string settings.
 // AdapterConfig: network=tcp,addr=:6379,password=macaron,db=0,pool_size=100,idle_timeout=180
 func (c *RedisCacher) StartAndGC(opts cache.Options) error {
+	c.interval = opts.Interval
+
 	cfg, err := ini.Load([]byte(strings.Replace(opts.AdapterConfig, ",", "\n", -1)))
 	if err != nil {
 		return err
@@ -149,7 +180,12 @@ func (c *RedisCacher) StartAndGC(opts cache.Options) error {
 	}
 
 	c.c = redis.NewClient(opt)
-	return c.c.Ping().Err()
+	if err = c.c.Ping().Err(); err != nil {
+		return err
+	}
+
+	go c.startGC()
+	return nil
 }
 
 func init() {

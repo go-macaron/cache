@@ -75,11 +75,10 @@ func prepareOptions(options []Options) Options {
 	if len(opt.Adapter) == 0 {
 		opt.Adapter = sec.Key("ADAPTER").MustString("memory")
 	}
-	if opt.Adapter == "memory" {
-		if opt.Interval == 0 {
-			opt.Interval = sec.Key("INTERVAL").MustInt(60)
-		}
-	} else if len(opt.AdapterConfig) == 0 {
+	if opt.Interval == 0 {
+		opt.Interval = sec.Key("INTERVAL").MustInt(60)
+	}
+	if len(opt.AdapterConfig) == 0 {
 		opt.AdapterConfig = sec.Key("ADAPTER_CONFIG").MustString("data/caches")
 	}
 
