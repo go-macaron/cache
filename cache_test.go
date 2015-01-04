@@ -97,6 +97,8 @@ func testAdapter(opt Options) {
 			So(c.Put("uname", "unknwon", 0), ShouldBeNil)
 			So(c.Flush(), ShouldBeNil)
 			So(c.Get("uname"), ShouldBeNil)
+
+			So(c.Put("struct", opt, 0), ShouldBeNil)
 		})
 
 		resp := httptest.NewRecorder()

@@ -28,17 +28,15 @@ import (
 	"github.com/macaron-contrib/cache"
 )
 
-// FIXME: should I use Gob to support all types?
-
 var defaultHSetName = "MacaronCache"
 
-// MemoryCacher represents a redis cache adapter implementation.
+// RedisCacher represents a redis cache adapter implementation.
 type RedisCacher struct {
 	c        *redis.Client
 	interval int
 }
 
-// NewMemoryCacher creates and returns a new redis cacher.
+// NewRedisCacher creates and returns a new redis cacher.
 func NewRedisCacher() *RedisCacher {
 	return &RedisCacher{}
 }

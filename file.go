@@ -17,7 +17,6 @@ package cache
 
 import (
 	"crypto/md5"
-	"encoding/gob"
 	"encoding/hex"
 	"io/ioutil"
 	"log"
@@ -30,8 +29,8 @@ import (
 	"github.com/Unknwon/macaron"
 )
 
-// FileItem represents a file cache item.
-type FileItem struct {
+// Item represents a cache item.
+type Item struct {
 	Val     interface{}
 	Created int64
 	Expire  int64
@@ -57,10 +56,8 @@ func (c *FileCacher) filepath(key string) string {
 // Put puts value into cache with key and expire time.
 // If expired is 0, it will be deleted by next GC operation.
 func (c *FileCacher) Put(key string, val interface{}, expire int64) error {
-	gob.Register(val)
-
 	filename := c.filepath(key)
-	item := &FileItem{val, time.Now().Unix(), expire}
+	item := &Item{val, time.Now().Unix(), expire}
 	data, err := EncodeGob(item)
 	if err != nil {
 		return err
@@ -70,7 +67,7 @@ func (c *FileCacher) Put(key string, val interface{}, expire int64) error {
 	return ioutil.WriteFile(filename, data, os.ModePerm)
 }
 
-func (c *FileCacher) read(key string) (*FileItem, error) {
+func (c *FileCacher) read(key string) (*Item, error) {
 	filename := c.filepath(key)
 
 	data, err := ioutil.ReadFile(filename)
@@ -78,18 +75,14 @@ func (c *FileCacher) read(key string) (*FileItem, error) {
 		return nil, err
 	}
 
-	item := new(FileItem)
-	if err = DecodeGob(data, item); err != nil {
-		return nil, err
-	}
-	return item, nil
+	item := new(Item)
+	return item, DecodeGob(data, item)
 }
 
 // Get gets cached value by given key.
 func (c *FileCacher) Get(key string) interface{} {
 	item, err := c.read(key)
 	if err != nil {
-		// FIXME: error handle?
 		return nil
 	}
 
@@ -165,7 +158,7 @@ func (c *FileCacher) startGC() {
 			return err
 		}
 
-		item := new(FileItem)
+		item := new(Item)
 		if err = DecodeGob(data, item); err != nil {
 			return err
 		}

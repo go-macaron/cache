@@ -1,7 +1,7 @@
 cache [![Build Status](https://drone.io/github.com/macaron-contrib/cache/status.png)](https://drone.io/github.com/macaron-contrib/cache/latest) [![](http://gocover.io/_badge/github.com/macaron-contrib/cache)](http://gocover.io/github.com/macaron-contrib/cache)
 =====
 
-Middleware cache provides cache management for [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, file, Redis, Memcache, and Nodb.
+Middleware cache provides cache management for [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, file, Redis, Memcache, PostgreSQL and Nodb.
 
 ### Installation
 
@@ -11,6 +11,10 @@ Middleware cache provides cache management for [Macaron](https://github.com/Unkn
 
 - [API Reference](https://gowalker.org/github.com/macaron-contrib/cache)
 - [Documentation](http://macaron.gogs.io/docs/middlewares/cache)
+
+## Credits
+
+This package is forked from [beego/cache](https://github.com/astaxie/beego/tree/master/cache) with reconstruction(over 80%)
 
 ## License
 
