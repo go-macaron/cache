@@ -20,17 +20,15 @@ import (
 	"errors"
 )
 
-func GobEncode(data interface{}) ([]byte, error) {
+func EncodeGob(obj interface{}) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
-	enc := gob.NewEncoder(buf)
-	err := enc.Encode(data)
+	err := gob.NewEncoder(buf).Encode(obj)
 	return buf.Bytes(), err
 }
 
-func GobDecode(data []byte, to *FileItem) error {
-	buf := bytes.NewBuffer(data)
-	dec := gob.NewDecoder(buf)
-	return dec.Decode(&to)
+func DecodeGob(encoded []byte, out *FileItem) error {
+	buf := bytes.NewBuffer(encoded)
+	return gob.NewDecoder(buf).Decode(&out)
 }
 
 func Incr(val interface{}) (interface{}, error) {

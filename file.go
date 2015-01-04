@@ -61,7 +61,7 @@ func (c *FileCacher) Put(key string, val interface{}, expire int64) error {
 
 	filename := c.filepath(key)
 	item := &FileItem{val, time.Now().Unix(), expire}
-	data, err := GobEncode(item)
+	data, err := EncodeGob(item)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (c *FileCacher) read(key string) (*FileItem, error) {
 	}
 
 	item := new(FileItem)
-	if err = GobDecode(data, item); err != nil {
+	if err = DecodeGob(data, item); err != nil {
 		return nil, err
 	}
 	return item, nil
@@ -166,10 +166,9 @@ func (c *FileCacher) startGC() {
 		}
 
 		item := new(FileItem)
-		if err = GobDecode(data, item); err != nil {
+		if err = DecodeGob(data, item); err != nil {
 			return err
 		}
-
 		if (time.Now().Unix() - item.Created) >= item.Expire {
 			return os.Remove(path)
 		}
