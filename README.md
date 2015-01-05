@@ -1,7 +1,7 @@
 cache [![Build Status](https://drone.io/github.com/macaron-contrib/cache/status.png)](https://drone.io/github.com/macaron-contrib/cache/latest) [![](http://gocover.io/_badge/github.com/macaron-contrib/cache)](http://gocover.io/github.com/macaron-contrib/cache)
 =====
 
-Middleware cache provides cache management for [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, file, Redis, Memcache, PostgreSQL and Nodb.
+Middleware cache provides cache management for [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, file, Redis, Memcache, PostgreSQL, MySQL and Nodb.
 
 ### Installation
 
