@@ -16,148 +16,77 @@
 package cache
 
 import (
-	"errors"
+	"strings"
 
-	"github.com/beego/memcache"
+	"github.com/Unknwon/com"
+	"github.com/bradfitz/gomemcache/memcache"
 
 	"github.com/macaron-contrib/cache"
 )
 
-// Memcache adapter.
-type MemcacheCache struct {
-	c        *memcache.Connection
-	conninfo string
+// MemcacheCacher represents a memcache cache adapter implementation.
+type MemcacheCacher struct {
+	c *memcache.Client
 }
 
-// create new memcache adapter.
-func NewMemCache() *MemcacheCache {
-	return &MemcacheCache{}
-}
-
-// get value from memcache.
-func (rc *MemcacheCache) Get(key string) interface{} {
-	if rc.c == nil {
-		var err error
-		rc.c, err = rc.connectInit()
-		if err != nil {
-			return err
-		}
+func NewItem(key string, data []byte, expire int32) *memcache.Item {
+	return &memcache.Item{
+		Key:        key,
+		Value:      data,
+		Expiration: expire,
 	}
-	v, err := rc.c.Get(key)
+}
+
+// Put puts value into cache with key and expire time.
+// If expired is 0, it lives forever.
+func (c *MemcacheCacher) Put(key string, val interface{}, expire int64) error {
+	return c.c.Set(NewItem(key, []byte(com.ToStr(val)), int32(expire)))
+}
+
+// Get gets cached value by given key.
+func (c *MemcacheCacher) Get(key string) interface{} {
+	item, err := c.c.Get(key)
 	if err != nil {
 		return nil
 	}
-	var contain interface{}
-	if len(v) > 0 {
-		contain = string(v[0].Value)
-	} else {
-		contain = nil
-	}
-	return contain
+	return string(item.Value)
 }
 
-// put value to memcache. only support string.
-func (rc *MemcacheCache) Put(key string, val interface{}, timeout int64) error {
-	if rc.c == nil {
-		var err error
-		rc.c, err = rc.connectInit()
-		if err != nil {
-			return err
-		}
-	}
-	v, ok := val.(string)
-	if !ok {
-		return errors.New("val must string")
-	}
-	stored, err := rc.c.Set(key, 0, uint64(timeout), []byte(v))
-	if err == nil && stored == false {
-		return errors.New("stored fail")
-	}
+// Delete deletes cached value by given key.
+func (c *MemcacheCacher) Delete(key string) error {
+	return c.c.Delete(key)
+}
+
+// Incr increases cached int-type value by given key as a counter.
+func (c *MemcacheCacher) Incr(key string) error {
+	_, err := c.c.Increment(key, 1)
 	return err
 }
 
-// delete value in memcache.
-func (rc *MemcacheCache) Delete(key string) error {
-	if rc.c == nil {
-		var err error
-		rc.c, err = rc.connectInit()
-		if err != nil {
-			return err
-		}
-	}
-	_, err := rc.c.Delete(key)
+// Decr decreases cached int-type value by given key as a counter.
+func (c *MemcacheCacher) Decr(key string) error {
+	_, err := c.c.Decrement(key, 1)
 	return err
 }
 
-// [Not Support]
-// increase counter.
-func (rc *MemcacheCache) Incr(key string) error {
-	return errors.New("not support in memcache")
+// IsExist returns true if cached value exists.
+func (c *MemcacheCacher) IsExist(key string) bool {
+	_, err := c.c.Get(key)
+	return err == nil
 }
 
-// [Not Support]
-// decrease counter.
-func (rc *MemcacheCache) Decr(key string) error {
-	return errors.New("not support in memcache")
+// Flush deletes all cached data.
+func (c *MemcacheCacher) Flush() error {
+	return c.c.FlushAll()
 }
 
-// check value exists in memcache.
-func (rc *MemcacheCache) IsExist(key string) bool {
-	if rc.c == nil {
-		var err error
-		rc.c, err = rc.connectInit()
-		if err != nil {
-			return false
-		}
-	}
-	v, err := rc.c.Get(key)
-	if err != nil {
-		return false
-	}
-	if len(v) == 0 {
-		return false
-	} else {
-		return true
-	}
-}
-
-// clear all cached in memcache.
-func (rc *MemcacheCache) Flush() error {
-	if rc.c == nil {
-		var err error
-		rc.c, err = rc.connectInit()
-		if err != nil {
-			return err
-		}
-	}
-	err := rc.c.FlushAll()
-	return err
-}
-
-// start memcache adapter.
-// config string is like {"conn":"connection info"}.
-// if connecting error, return.
-func (rc *MemcacheCache) StartAndGC(opt cache.Options) error {
-	rc.conninfo = opt.AdapterConfig
-	var err error
-	if rc.c != nil {
-		rc.c, err = rc.connectInit()
-		if err != nil {
-			return errors.New("dial tcp conn error")
-		}
-	}
+// StartAndGC starts GC routine based on config string settings.
+// AdapterConfig: 127.0.0.1:9090;127.0.0.1:9091
+func (c *MemcacheCacher) StartAndGC(opt cache.Options) error {
+	c.c = memcache.New(strings.Split(opt.AdapterConfig, ";")...)
 	return nil
 }
 
-// connect to memcache and keep the connection.
-func (rc *MemcacheCache) connectInit() (*memcache.Connection, error) {
-	c, err := memcache.Connect(rc.conninfo)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
 func init() {
-	cache.Register("memcache", NewMemCache())
+	cache.Register("memcache", &MemcacheCacher{})
 }

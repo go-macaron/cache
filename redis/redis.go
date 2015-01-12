@@ -36,11 +36,6 @@ type RedisCacher struct {
 	interval int
 }
 
-// NewRedisCacher creates and returns a new redis cacher.
-func NewRedisCacher() *RedisCacher {
-	return &RedisCacher{}
-}
-
 // Put puts value into cache with key and expire time.
 // If expired is 0, it lives forever.
 func (c *RedisCacher) Put(key string, val interface{}, expire int64) (err error) {
@@ -187,5 +182,5 @@ func (c *RedisCacher) StartAndGC(opts cache.Options) error {
 }
 
 func init() {
-	cache.Register("redis", NewRedisCacher())
+	cache.Register("redis", &RedisCacher{})
 }
