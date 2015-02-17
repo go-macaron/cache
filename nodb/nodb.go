@@ -111,7 +111,7 @@ func (c *NodbCacher) new() (err error) {
 	cfg.DataDir = c.filepath
 	c.dbs, err = nodb.Open(cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("cache/nodb: error opening db: %v", err)
 	}
 
 	c.db, err = c.dbs.Select(0)

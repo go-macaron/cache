@@ -28,7 +28,7 @@ import (
 )
 
 func Test_LedisCacher(t *testing.T) {
-	Convey("Test ledis cache adapter", t, func() {
+	Convey("Test nodb cache adapter", t, func() {
 		opt := cache.Options{
 			Adapter:       "nodb",
 			AdapterConfig: "./tmp.db",
