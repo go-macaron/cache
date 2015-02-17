@@ -1,4 +1,5 @@
 // Copyright 2014 lunny
+// Copyright 2015 Unknwon
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -19,6 +20,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Unknwon/com"
 	"github.com/lunny/nodb"
 	"github.com/lunny/nodb/config"
 
@@ -26,122 +28,115 @@ import (
 )
 
 var (
-	ErrDBExists = errors.New("db is exsit")
+	ErrDBExists = errors.New("database already exists")
 )
 
-// Memcache adapter.
-type NodbCache struct {
+// NodbCacher represents a nodb cache adapter implementation.
+type NodbCacher struct {
 	dbs      *nodb.Nodb
 	db       *nodb.DB
 	filepath string
 }
 
-// create new nodb adapter.
-func NewNodbCache() *NodbCache {
-	return &NodbCache{}
+// Put puts value into cache with key and expire time.
+// If expired is 0, it lives forever.
+func (c *NodbCacher) Put(key string, val interface{}, expire int64) (err error) {
+	var v []byte
+	switch val.(type) {
+	case []byte:
+		v = val.([]byte)
+	default:
+		v = []byte(com.ToStr(val))
+	}
+
+	if err = c.db.Set([]byte(key), v); err != nil {
+		return err
+	}
+
+	if expire > 0 {
+		_, err = c.db.Expire([]byte(key), expire)
+		return err
+	}
+	return nil
 }
 
-// get value from nodb.
-func (rc *NodbCache) Get(key string) interface{} {
-	v, err := rc.db.Get([]byte(key))
+// Get gets cached value by given key.
+func (c *NodbCacher) Get(key string) interface{} {
+	val, err := c.db.Get([]byte(key))
 	if err != nil {
 		return nil
 	}
-	var contain interface{}
-	if len(v) > 0 {
-		contain = string(v)
-	} else {
-		contain = nil
+	if len(val) > 0 {
+		return string(val)
 	}
-	return contain
+	return nil
 }
 
-// put value to nodb. only support string.
-func (rc *NodbCache) Put(key string, val interface{}, timeout int64) error {
-	var content []byte
-	switch val.(type) {
-	case string:
-		content = []byte(val.(string))
-	case []byte:
-		content = val.([]byte)
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		content = []byte(fmt.Sprintf("%v", val))
-	default:
-		return errors.New("val must string")
+// Delete deletes cached value by given key.
+func (c *NodbCacher) Delete(key string) error {
+	_, err := c.db.Del([]byte(key))
+	return err
+}
+
+// Incr increases cached int-type value by given key as a counter.
+func (c *NodbCacher) Incr(key string) error {
+	if !c.IsExist(key) {
+		return fmt.Errorf("key '%s' not exist", key)
+	}
+	_, err := c.db.Incr([]byte(key))
+	return err
+}
+
+// Decr decreases cached int-type value by given key as a counter.
+func (c *NodbCacher) Decr(key string) error {
+	if !c.IsExist(key) {
+		return fmt.Errorf("key '%s' not exist", key)
+	}
+	_, err := c.db.Decr([]byte(key))
+	return err
+}
+
+// IsExist returns true if cached value exists.
+func (c *NodbCacher) IsExist(key string) bool {
+	num, err := c.db.Exists([]byte(key))
+	return err == nil && num > 0
+}
+
+func (c *NodbCacher) new() (err error) {
+	if c.db != nil {
+		return ErrDBExists
 	}
 
-	err := rc.db.Set([]byte(key), content)
+	cfg := new(config.Config)
+	cfg.DataDir = c.filepath
+	c.dbs, err = nodb.Open(cfg)
 	if err != nil {
 		return err
 	}
 
-	_, err = rc.db.Expire([]byte(key), timeout)
+	c.db, err = c.dbs.Select(0)
 	return err
 }
 
-// delete value in memcache.
-func (rc *NodbCache) Delete(key string) error {
-	_, err := rc.db.Del([]byte(key))
-	return err
-}
-
-// increase counter.
-func (rc *NodbCache) Incr(key string) error {
-	_, err := rc.db.Incr([]byte(key))
-	return err
-}
-
-// decrease counter.
-func (rc *NodbCache) Decr(key string) error {
-	_, err := rc.db.Decr([]byte(key))
-	return err
-}
-
-// check value exists in memcache.
-func (rc *NodbCache) IsExist(key string) bool {
-	v, err := rc.db.Exists([]byte(key))
-	if err != nil || v == 0 {
-		return false
-	}
-
-	return true
-}
-
-// clear all cached in nodb.
-func (rc *NodbCache) Flush() error {
-	os.RemoveAll(rc.filepath)
-
-	rc.dbs.Close()
-	rc.db = nil
-	rc.dbs = nil
-
-	return rc.new()
-}
-
-func (rc *NodbCache) new() error {
-	var err error
-	if rc.db == nil {
-		cfg := new(config.Config)
-		cfg.DataDir = rc.filepath
-		rc.dbs, err = nodb.Open(cfg)
-		if err != nil {
-			return err
-		}
-
-		rc.db, err = rc.dbs.Select(0)
+// Flush deletes all cached data.
+func (c *NodbCacher) Flush() (err error) {
+	if err = os.RemoveAll(c.filepath); err != nil {
 		return err
 	}
-	return ErrDBExists
+
+	c.dbs.Close()
+	c.db = nil
+	c.dbs = nil
+
+	return c.new()
 }
 
-// start nodbcache adapter.
-// config string is like {"conn":"./cur.db", "interval":10}.//seconds
-func (rc *NodbCache) StartAndGC(opt cache.Options) error {
-	rc.filepath = opt.AdapterConfig
-
-	return rc.new()
+// StartAndGC starts GC routine based on config string settings.
+func (c *NodbCacher) StartAndGC(opt cache.Options) error {
+	c.filepath = opt.AdapterConfig
+	return c.new()
 }
 
 func init() {
-	cache.Register("nodb", NewNodbCache())
+	cache.Register("nodb", &NodbCacher{})
 }

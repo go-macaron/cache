@@ -6,7 +6,7 @@ Middleware cache provides cache management for [Macaron](https://github.com/Unkn
 ### Installation
 
 	go get github.com/macaron-contrib/cache
-	
+
 ## Getting Help
 
 - [API Reference](https://gowalker.org/github.com/macaron-contrib/cache)
@@ -14,7 +14,7 @@ Middleware cache provides cache management for [Macaron](https://github.com/Unkn
 
 ## Credits
 
-This package is forked from [beego/cache](https://github.com/astaxie/beego/tree/master/cache) with reconstruction(over 80%)
+This package is forked from [beego/cache](https://github.com/astaxie/beego/tree/master/cache) with reconstruction(over 90%)
 
 ## License
 

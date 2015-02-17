@@ -1,4 +1,4 @@
-// Copyright 2014 lunny
+// Copyright 2015 Unknwon
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -14,76 +14,84 @@
 
 package cache
 
-// import (
-// 	"strconv"
-// 	"testing"
-// 	"time"
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 
-// 	"github.com/macaron-contrib/cache"
-// )
+	"github.com/Unknwon/com"
+	"github.com/Unknwon/macaron"
+	. "github.com/smartystreets/goconvey/convey"
 
-// func toInt(v string) (int64, error) {
-// 	return strconv.ParseInt(v, 10, 64)
-// }
+	"github.com/macaron-contrib/cache"
+)
 
-// func TestNodbCache(t *testing.T) {
-// 	bm, err := cache.NewCacher("nodb", cache.Options{AdapterConfig: "./cache"})
-// 	if err != nil {
-// 		t.Error("init err", err)
-// 	}
-// 	if err = bm.Put("lunny", 1, 10); err != nil {
-// 		t.Error("set Error", err)
-// 	}
-// 	if !bm.IsExist("lunny") {
-// 		t.Error("check err")
-// 	}
+func Test_LedisCacher(t *testing.T) {
+	Convey("Test ledis cache adapter", t, func() {
+		opt := cache.Options{
+			Adapter:       "nodb",
+			AdapterConfig: "./tmp.db",
+		}
 
-// 	time.Sleep(11 * time.Second)
+		Convey("Basic operations", func() {
+			m := macaron.New()
+			m.Use(cache.Cacher(opt))
 
-// 	if bm.IsExist("lunny") {
-// 		t.Error("check err")
-// 	}
-// 	if err = bm.Put("lunny", 1, 10); err != nil {
-// 		t.Error("set Error", err)
-// 	}
+			m.Get("/", func(c cache.Cache) {
+				So(c.Put("uname", "unknwon", 1), ShouldBeNil)
+				So(c.Put("uname2", "unknwon2", 1), ShouldBeNil)
+				So(c.IsExist("uname"), ShouldBeTrue)
 
-// 	if v, _ := toInt(bm.Get("lunny").(string)); v != 1 {
-// 		t.Error("get err")
-// 	}
+				So(c.Get("404"), ShouldBeNil)
+				So(c.Get("uname").(string), ShouldEqual, "unknwon")
 
-// 	if err = bm.Incr("lunny"); err != nil {
-// 		t.Error("Incr Error", err)
-// 	}
+				time.Sleep(2 * time.Second)
+				So(c.Get("uname"), ShouldBeNil)
+				time.Sleep(1 * time.Second)
+				So(c.Get("uname2"), ShouldBeNil)
 
-// 	if v, _ := toInt(bm.Get("lunny").(string)); v != 2 {
-// 		t.Error("get err")
-// 	}
+				So(c.Put("uname", "unknwon", 0), ShouldBeNil)
+				So(c.Delete("uname"), ShouldBeNil)
+				So(c.Get("uname"), ShouldBeNil)
 
-// 	if err = bm.Decr("lunny"); err != nil {
-// 		t.Error("Decr Error", err)
-// 	}
+				So(c.Put("uname", "unknwon", 0), ShouldBeNil)
+				So(c.Flush(), ShouldBeNil)
+				So(c.Get("uname"), ShouldBeNil)
+			})
 
-// 	if v, _ := toInt(bm.Get("lunny").(string)); v != 1 {
-// 		t.Error("get err")
-// 	}
+			resp := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", "/", nil)
+			So(err, ShouldBeNil)
+			m.ServeHTTP(resp, req)
 
-// 	bm.Delete("lunny")
-// 	if bm.IsExist("lunny") {
-// 		t.Error("delete err")
-// 	}
-// 	//test string
-// 	if err = bm.Put("lunny", "author", 10); err != nil {
-// 		t.Error("set Error", err)
-// 	}
-// 	if !bm.IsExist("lunny") {
-// 		t.Error("check err")
-// 	}
+			m.Get("/id", func(c cache.Cache) {
+				So(c.Incr("404"), ShouldNotBeNil)
+				So(c.Decr("404"), ShouldNotBeNil)
 
-// 	if v := string(bm.Get("lunny").(string)); v != "author" {
-// 		t.Error("get err")
-// 	}
-// 	// test clear all
-// 	if err = bm.Flush(); err != nil {
-// 		t.Error("clear all err")
-// 	}
-// }
+				So(c.Put("int", 0, 0), ShouldBeNil)
+				So(c.Put("int64", int64(0), 0), ShouldBeNil)
+				So(c.Put("string", "hi", 0), ShouldBeNil)
+
+				So(c.Incr("int"), ShouldBeNil)
+				So(c.Incr("int64"), ShouldBeNil)
+
+				So(c.Decr("int"), ShouldBeNil)
+				So(c.Decr("int64"), ShouldBeNil)
+
+				So(c.Incr("string"), ShouldNotBeNil)
+				So(c.Decr("string"), ShouldNotBeNil)
+
+				So(com.StrTo(c.Get("int").(string)).MustInt(), ShouldEqual, 0)
+				So(com.StrTo(c.Get("int64").(string)).MustInt64(), ShouldEqual, 0)
+
+				So(c.Flush(), ShouldBeNil)
+			})
+
+			resp = httptest.NewRecorder()
+			req, err = http.NewRequest("GET", "/id", nil)
+			So(err, ShouldBeNil)
+			m.ServeHTTP(resp, req)
+		})
+	})
+}
