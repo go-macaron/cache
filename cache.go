@@ -24,7 +24,7 @@ import (
 	"github.com/Unknwon/macaron"
 )
 
-const _VERSION = "0.0.7"
+const _VERSION = "0.1.0"
 
 func Version() string {
 	return _VERSION
@@ -58,6 +58,8 @@ type Options struct {
 	AdapterConfig string
 	// GC interval time in seconds. Default is 60.
 	Interval int
+	// Occupy entire database. Default is false.
+	OccupyMode bool
 	// Configuration section name. Default is "cache".
 	Section string
 }
