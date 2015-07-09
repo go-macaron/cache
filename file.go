@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
 
@@ -63,7 +62,7 @@ func (c *FileCacher) Put(key string, val interface{}, expire int64) error {
 		return err
 	}
 
-	os.MkdirAll(path.Dir(filename), os.ModePerm)
+	os.MkdirAll(filepath.Dir(filename), os.ModePerm)
 	return ioutil.WriteFile(filename, data, os.ModePerm)
 }
 
