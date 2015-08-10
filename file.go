@@ -175,6 +175,7 @@ func (c *FileCacher) startGC() {
 // StartAndGC starts GC routine based on config string settings.
 func (c *FileCacher) StartAndGC(opt Options) error {
 	c.rootPath = opt.AdapterConfig
+	c.interval = opt.Interval
 
 	if !filepath.IsAbs(c.rootPath) {
 		c.rootPath = filepath.Join(macaron.Root, c.rootPath)
