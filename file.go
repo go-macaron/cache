@@ -18,6 +18,7 @@ package cache
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -33,6 +34,11 @@ type Item struct {
 	Val     interface{}
 	Created int64
 	Expire  int64
+}
+
+func (item *Item) hasExpired() bool {
+	return item.Expire > 0 &&
+		(time.Now().Unix()-item.Created) >= item.Expire
 }
 
 // FileCacher represents a file cache adapter implementation.
@@ -85,8 +91,7 @@ func (c *FileCacher) Get(key string) interface{} {
 		return nil
 	}
 
-	if item.Expire > 0 &&
-		(time.Now().Unix()-item.Created) >= item.Expire {
+	if item.hasExpired() {
 		os.Remove(c.filepath(key))
 		return nil
 	}
@@ -145,7 +150,7 @@ func (c *FileCacher) startGC() {
 
 	if err := filepath.Walk(c.rootPath, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			return fmt.Errorf("Walk: %v", err)
 		}
 
 		if fi.IsDir() {
@@ -153,16 +158,18 @@ func (c *FileCacher) startGC() {
 		}
 
 		data, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
+		if err != nil && !os.IsNotExist(err) {
+			fmt.Errorf("ReadFile: %v", err)
 		}
 
 		item := new(Item)
 		if err = DecodeGob(data, item); err != nil {
 			return err
 		}
-		if (time.Now().Unix() - item.Created) >= item.Expire {
-			return os.Remove(path)
+		if item.hasExpired() {
+			if err = os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("Remove: %v", err)
+			}
 		}
 		return nil
 	}); err != nil {
