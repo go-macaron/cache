@@ -23,7 +23,7 @@ import (
 func Test_MemoryCacher(t *testing.T) {
 	Convey("Test memory cache adapter", t, func() {
 		testAdapter(Options{
-			Interval: 1,
+			Interval: 2,
 		})
 	})
 }

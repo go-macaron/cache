@@ -15,6 +15,7 @@
 package cache
 
 import (
+	"encoding/gob"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -98,6 +99,7 @@ func testAdapter(opt Options) {
 			So(c.Flush(), ShouldBeNil)
 			So(c.Get("uname"), ShouldBeNil)
 
+			gob.Register(opt)
 			So(c.Put("struct", opt, 0), ShouldBeNil)
 		})
 

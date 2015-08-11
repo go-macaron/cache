@@ -21,8 +21,6 @@ import (
 )
 
 func EncodeGob(item *Item) ([]byte, error) {
-	gob.Register(item.Val)
-
 	buf := bytes.NewBuffer(nil)
 	err := gob.NewEncoder(buf).Encode(item)
 	return buf.Bytes(), err
