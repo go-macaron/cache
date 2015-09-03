@@ -17,7 +17,6 @@ package cache
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -32,28 +31,31 @@ var defaultHSetName = "MacaronCache"
 
 // RedisCacher represents a redis cache adapter implementation.
 type RedisCacher struct {
-	c        *redis.Client
-	interval int
+	c          *redis.Client
+	occupyMode bool
 }
 
 // Put puts value into cache with key and expire time.
 // If expired is 0, it lives forever.
-func (c *RedisCacher) Put(key string, val interface{}, expire int64) (err error) {
+func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
 	if expire == 0 {
-		if err = c.c.Set(key, com.ToStr(val)).Err(); err != nil {
+		if err := c.c.Set(key, com.ToStr(val)).Err(); err != nil {
 			return err
 		}
-		return c.c.HSet(defaultHSetName, key, "0").Err()
+	} else {
+		dur, err := time.ParseDuration(com.ToStr(expire) + "s")
+		if err != nil {
+			return err
+		}
+		if err = c.c.SetEx(key, dur, com.ToStr(val)).Err(); err != nil {
+			return err
+		}
 	}
 
-	dur, err := time.ParseDuration(com.ToStr(expire) + "s")
-	if err != nil {
-		return err
+	if c.occupyMode {
+		return nil
 	}
-	if err = c.c.SetEx(key, dur, com.ToStr(val)).Err(); err != nil {
-		return err
-	}
-	return c.c.HSet(defaultHSetName, key, com.ToStr(time.Now().Add(dur).Unix())).Err()
+	return c.c.HSet(defaultHSetName, key, "0").Err()
 }
 
 // Get gets cached value by given key.
@@ -69,6 +71,10 @@ func (c *RedisCacher) Get(key string) interface{} {
 func (c *RedisCacher) Delete(key string) error {
 	if err := c.c.Del(key).Err(); err != nil {
 		return err
+	}
+
+	if c.occupyMode {
+		return nil
 	}
 	return c.c.HDel(defaultHSetName, key).Err()
 }
@@ -94,12 +100,19 @@ func (c *RedisCacher) IsExist(key string) bool {
 	if c.c.Exists(key).Val() {
 		return true
 	}
-	c.c.HDel(defaultHSetName, key)
+
+	if !c.occupyMode {
+		c.c.HDel(defaultHSetName, key)
+	}
 	return false
 }
 
 // Flush deletes all cached data.
 func (c *RedisCacher) Flush() error {
+	if c.occupyMode {
+		return c.c.FlushDb().Err()
+	}
+
 	keys, err := c.c.HKeys(defaultHSetName).Result()
 	if err != nil {
 		return err
@@ -110,37 +123,10 @@ func (c *RedisCacher) Flush() error {
 	return c.c.Del(defaultHSetName).Err()
 }
 
-func (c *RedisCacher) startGC() {
-	if c.interval < 1 {
-		return
-	}
-
-	kvs, err := c.c.HGetAllMap(defaultHSetName).Result()
-	if err != nil {
-		log.Printf("cache/redis: error garbage collecting(get): %v", err)
-		return
-	}
-
-	now := time.Now().Unix()
-	for k, v := range kvs {
-		expire := com.StrTo(v).MustInt64()
-		if expire == 0 || now < expire {
-			continue
-		}
-
-		if err = c.Delete(k); err != nil {
-			log.Printf("cache/redis: error garbage collecting(delete): %v", err)
-			continue
-		}
-	}
-
-	time.AfterFunc(time.Duration(c.interval)*time.Second, func() { c.startGC() })
-}
-
 // StartAndGC starts GC routine based on config string settings.
 // AdapterConfig: network=tcp,addr=:6379,password=macaron,db=0,pool_size=100,idle_timeout=180
 func (c *RedisCacher) StartAndGC(opts cache.Options) error {
-	c.interval = opts.Interval
+	c.occupyMode = opts.OccupyMode
 
 	cfg, err := ini.Load([]byte(strings.Replace(opts.AdapterConfig, ",", "\n", -1)))
 	if err != nil {
@@ -177,7 +163,6 @@ func (c *RedisCacher) StartAndGC(opts cache.Options) error {
 		return err
 	}
 
-	go c.startGC()
 	return nil
 }
 

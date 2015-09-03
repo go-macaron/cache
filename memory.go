@@ -28,6 +28,11 @@ type MemoryItem struct {
 	expire  int64
 }
 
+func (item *MemoryItem) hasExpired() bool {
+	return item.expire > 0 &&
+		(time.Now().Unix()-item.created) >= item.expire
+}
+
 // MemoryCacher represents a memory cache adapter implementation.
 type MemoryCacher struct {
 	lock     sync.RWMutex
@@ -63,8 +68,7 @@ func (c *MemoryCacher) Get(key string) interface{} {
 	if !ok {
 		return nil
 	}
-	if item.expire > 0 &&
-		(time.Now().Unix()-item.created) >= item.expire {
+	if item.hasExpired() {
 		go c.Delete(key)
 		return nil
 	}
@@ -131,7 +135,7 @@ func (c *MemoryCacher) checkRawExpiration(key string) {
 		return
 	}
 
-	if (time.Now().Unix() - item.created) >= item.expire {
+	if item.hasExpired() {
 		delete(c.items, key)
 	}
 }

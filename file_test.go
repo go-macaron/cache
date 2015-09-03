@@ -29,7 +29,7 @@ func Test_FileCacher(t *testing.T) {
 		testAdapter(Options{
 			Adapter:       "file",
 			AdapterConfig: dir,
-			Interval:      1,
+			Interval:      2,
 		})
 	})
 }
