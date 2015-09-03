@@ -16,15 +16,13 @@
 // Package cache is a middleware that provides the cache management of Macaron.
 package cache
 
-// NOTE: last sync d3ab157 on Dec 19, 2014.
-
 import (
 	"fmt"
 
 	"github.com/Unknwon/macaron"
 )
 
-const _VERSION = "0.1.1"
+const _VERSION = "0.1.2"
 
 func Version() string {
 	return _VERSION
