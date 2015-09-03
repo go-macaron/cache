@@ -125,10 +125,7 @@ func (c *MemoryCacher) Flush() error {
 	return nil
 }
 
-func (c *MemoryCacher) checkExpiration(key string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
+func (c *MemoryCacher) checkRawExpiration(key string) {
 	item, ok := c.items[key]
 	if !ok {
 		return
@@ -139,14 +136,23 @@ func (c *MemoryCacher) checkExpiration(key string) {
 	}
 }
 
+func (c *MemoryCacher) checkExpiration(key string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.checkRawExpiration(key)
+}
+
 func (c *MemoryCacher) startGC() {
 	if c.interval < 1 {
 		return
 	}
 
 	if c.items != nil {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 		for key, _ := range c.items {
-			c.checkExpiration(key)
+			c.checkRawExpiration(key)
 		}
 	}
 
