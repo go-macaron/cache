@@ -27,17 +27,18 @@ import (
 	"github.com/macaron-contrib/cache"
 )
 
-var defaultHSetName = "MacaronCache"
-
 // RedisCacher represents a redis cache adapter implementation.
 type RedisCacher struct {
 	c          *redis.Client
+	prefix     string
+	hsetName   string
 	occupyMode bool
 }
 
 // Put puts value into cache with key and expire time.
 // If expired is 0, it lives forever.
 func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
+	key = c.prefix + key
 	if expire == 0 {
 		if err := c.c.Set(key, com.ToStr(val)).Err(); err != nil {
 			return err
@@ -55,12 +56,12 @@ func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
 	if c.occupyMode {
 		return nil
 	}
-	return c.c.HSet(defaultHSetName, key, "0").Err()
+	return c.c.HSet(c.hsetName, key, "0").Err()
 }
 
 // Get gets cached value by given key.
 func (c *RedisCacher) Get(key string) interface{} {
-	val, err := c.c.Get(key).Result()
+	val, err := c.c.Get(c.prefix + key).Result()
 	if err != nil {
 		return nil
 	}
@@ -69,6 +70,7 @@ func (c *RedisCacher) Get(key string) interface{} {
 
 // Delete deletes cached value by given key.
 func (c *RedisCacher) Delete(key string) error {
+	key = c.prefix + key
 	if err := c.c.Del(key).Err(); err != nil {
 		return err
 	}
@@ -76,7 +78,7 @@ func (c *RedisCacher) Delete(key string) error {
 	if c.occupyMode {
 		return nil
 	}
-	return c.c.HDel(defaultHSetName, key).Err()
+	return c.c.HDel(c.hsetName, key).Err()
 }
 
 // Incr increases cached int-type value by given key as a counter.
@@ -84,7 +86,7 @@ func (c *RedisCacher) Incr(key string) error {
 	if !c.IsExist(key) {
 		return fmt.Errorf("key '%s' not exist", key)
 	}
-	return c.c.Incr(key).Err()
+	return c.c.Incr(c.prefix + key).Err()
 }
 
 // Decr decreases cached int-type value by given key as a counter.
@@ -92,17 +94,17 @@ func (c *RedisCacher) Decr(key string) error {
 	if !c.IsExist(key) {
 		return fmt.Errorf("key '%s' not exist", key)
 	}
-	return c.c.Decr(key).Err()
+	return c.c.Decr(c.prefix + key).Err()
 }
 
 // IsExist returns true if cached value exists.
 func (c *RedisCacher) IsExist(key string) bool {
-	if c.c.Exists(key).Val() {
+	if c.c.Exists(c.prefix + key).Val() {
 		return true
 	}
 
 	if !c.occupyMode {
-		c.c.HDel(defaultHSetName, key)
+		c.c.HDel(c.hsetName, c.prefix+key)
 	}
 	return false
 }
@@ -113,19 +115,20 @@ func (c *RedisCacher) Flush() error {
 		return c.c.FlushDb().Err()
 	}
 
-	keys, err := c.c.HKeys(defaultHSetName).Result()
+	keys, err := c.c.HKeys(c.hsetName).Result()
 	if err != nil {
 		return err
 	}
 	if err = c.c.Del(keys...).Err(); err != nil {
 		return err
 	}
-	return c.c.Del(defaultHSetName).Err()
+	return c.c.Del(c.hsetName).Err()
 }
 
 // StartAndGC starts GC routine based on config string settings.
-// AdapterConfig: network=tcp,addr=:6379,password=macaron,db=0,pool_size=100,idle_timeout=180
+// AdapterConfig: network=tcp,addr=:6379,password=macaron,db=0,pool_size=100,idle_timeout=180,hset_name=MacaronCache,prefix=cache:
 func (c *RedisCacher) StartAndGC(opts cache.Options) error {
+	c.hsetName = "MacaronCache"
 	c.occupyMode = opts.OccupyMode
 
 	cfg, err := ini.Load([]byte(strings.Replace(opts.AdapterConfig, ",", "\n", -1)))
@@ -153,6 +156,10 @@ func (c *RedisCacher) StartAndGC(opts cache.Options) error {
 			if err != nil {
 				return fmt.Errorf("error parsing idle timeout: %v", err)
 			}
+		case "hset_name":
+			c.hsetName = v
+		case "prefix":
+			c.prefix = v
 		default:
 			return fmt.Errorf("session/redis: unsupported option '%s'", k)
 		}

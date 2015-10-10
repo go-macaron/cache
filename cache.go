@@ -22,7 +22,7 @@ import (
 	"github.com/Unknwon/macaron"
 )
 
-const _VERSION = "0.1.2"
+const _VERSION = "0.2.0"
 
 func Version() string {
 	return _VERSION

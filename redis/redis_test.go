@@ -31,7 +31,7 @@ func Test_RedisCacher(t *testing.T) {
 	Convey("Test redis cache adapter", t, func() {
 		opt := cache.Options{
 			Adapter:       "redis",
-			AdapterConfig: "addr=:6379",
+			AdapterConfig: "addr=:6379,prefix=cache:",
 		}
 
 		Convey("Basic operations", func() {
