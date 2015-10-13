@@ -1,5 +1,5 @@
 // Copyright 2014 lunny
-// Copyright 2015 Unknwon
+// Copyright 2014 The Macaron Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -24,7 +24,7 @@ import (
 	"github.com/lunny/nodb"
 	"github.com/lunny/nodb/config"
 
-	"github.com/macaron-contrib/cache"
+	"github.com/go-macaron/cache"
 )
 
 var (

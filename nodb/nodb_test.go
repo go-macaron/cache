@@ -1,4 +1,4 @@
-// Copyright 2015 Unknwon
+// Copyright 2014 The Macaron Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -21,10 +21,10 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	"github.com/Unknwon/macaron"
 	. "github.com/smartystreets/goconvey/convey"
+	"gopkg.in/macaron.v1"
 
-	"github.com/macaron-contrib/cache"
+	"github.com/go-macaron/cache"
 )
 
 func Test_LedisCacher(t *testing.T) {

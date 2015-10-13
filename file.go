@@ -1,5 +1,5 @@
 // Copyright 2013 Beego Authors
-// Copyright 2014 Unknwon
+// Copyright 2014 The Macaron Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -23,10 +23,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/Unknwon/com"
-	"github.com/Unknwon/macaron"
+	"gopkg.in/macaron.v1"
 )
 
 // Item represents a cache item.
@@ -43,6 +44,7 @@ func (item *Item) hasExpired() bool {
 
 // FileCacher represents a file cache adapter implementation.
 type FileCacher struct {
+	lock     sync.Mutex
 	rootPath string
 	interval int // GC interval.
 }
@@ -144,6 +146,9 @@ func (c *FileCacher) Flush() error {
 }
 
 func (c *FileCacher) startGC() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if c.interval < 1 {
 		return
 	}
@@ -181,12 +186,14 @@ func (c *FileCacher) startGC() {
 
 // StartAndGC starts GC routine based on config string settings.
 func (c *FileCacher) StartAndGC(opt Options) error {
+	c.lock.Lock()
 	c.rootPath = opt.AdapterConfig
 	c.interval = opt.Interval
 
 	if !filepath.IsAbs(c.rootPath) {
 		c.rootPath = filepath.Join(macaron.Root, c.rootPath)
 	}
+	c.lock.Unlock()
 
 	if err := os.MkdirAll(c.rootPath, os.ModePerm); err != nil {
 		return err

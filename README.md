@@ -1,21 +1,20 @@
-cache [![Build Status](https://drone.io/github.com/macaron-contrib/cache/status.png)](https://drone.io/github.com/macaron-contrib/cache/latest) [![](http://gocover.io/_badge/github.com/macaron-contrib/cache)](http://gocover.io/github.com/macaron-contrib/cache)
-=====
+# cache [![Build Status](https://travis-ci.org/go-macaron/cache.svg?branch=master)](https://travis-ci.org/go-macaron/cache) [![](http://gocover.io/_badge/github.com/go-macaron/cache)](http://gocover.io/github.com/go-macaron/cache)
 
-Middleware cache provides cache management for [Macaron](https://github.com/Unknwon/macaron). It can use many cache adapters, including memory, file, Redis, Memcache, PostgreSQL, MySQL, Ledis and Nodb.
+Middleware cache provides cache management for [Macaron](https://github.com/go-macaron/macaron). It can use many cache adapters, including memory, file, Redis, Memcache, PostgreSQL, MySQL, Ledis and Nodb.
 
 ### Installation
 
-	go get github.com/macaron-contrib/cache
+	go get github.com/go-macaron/cache
 
 ## Getting Help
 
-- [API Reference](https://gowalker.org/github.com/macaron-contrib/cache)
-- [Documentation](http://macaron.gogs.io/docs/middlewares/cache)
+- [API Reference](https://gowalker.org/github.com/go-macaron/cache)
+- [Documentation](http://go-macaron.com/docs/middlewares/cache)
 
 ## Credits
 
-This package is forked from [beego/cache](https://github.com/astaxie/beego/tree/master/cache) with reconstruction(over 90%)
+This package is a modified version of [beego/cache](https://github.com/astaxie/beego/tree/master/cache).
 
 ## License
 
-This project is under Apache v2 License. See the [LICENSE](LICENSE) file for the full license text.
+This project is under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for the full license text.

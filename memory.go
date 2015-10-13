@@ -1,5 +1,5 @@
 // Copyright 2013 Beego Authors
-// Copyright 2014 Unknwon
+// Copyright 2014 The Macaron Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -148,13 +148,14 @@ func (c *MemoryCacher) checkExpiration(key string) {
 }
 
 func (c *MemoryCacher) startGC() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if c.interval < 1 {
 		return
 	}
 
 	if c.items != nil {
-		c.lock.Lock()
-		defer c.lock.Unlock()
 		for key, _ := range c.items {
 			c.checkRawExpiration(key)
 		}
@@ -165,7 +166,10 @@ func (c *MemoryCacher) startGC() {
 
 // StartAndGC starts GC routine based on config string settings.
 func (c *MemoryCacher) StartAndGC(opt Options) error {
+	c.lock.Lock()
 	c.interval = opt.Interval
+	c.lock.Unlock()
+
 	go c.startGC()
 	return nil
 }

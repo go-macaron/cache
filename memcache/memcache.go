@@ -1,5 +1,5 @@
 // Copyright 2013 Beego Authors
-// Copyright 2014 Unknwon
+// Copyright 2014 The Macaron Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License"): you may
 // not use this file except in compliance with the License. You may obtain
@@ -21,7 +21,7 @@ import (
 	"github.com/Unknwon/com"
 	"github.com/bradfitz/gomemcache/memcache"
 
-	"github.com/macaron-contrib/cache"
+	"github.com/go-macaron/cache"
 )
 
 // MemcacheCacher represents a memcache cache adapter implementation.
