@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"github.com/lunny/nodb"
 	"github.com/lunny/nodb/config"
 

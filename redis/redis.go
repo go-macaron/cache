@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"gopkg.in/ini.v1"
 	"gopkg.in/redis.v2"
 

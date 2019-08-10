@@ -18,7 +18,7 @@ package cache
 import (
 	"strings"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"github.com/bradfitz/gomemcache/memcache"
 
 	"github.com/go-macaron/cache"
