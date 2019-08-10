@@ -1,8 +1,10 @@
-# cache [![Build Status](https://travis-ci.org/go-macaron/cache.svg?branch=master)](https://travis-ci.org/go-macaron/cache) [![](http://gocover.io/_badge/github.com/go-macaron/cache)](http://gocover.io/github.com/go-macaron/cache)
+# cache [![Build Status](https://travis-ci.org/go-macaron/cache.svg?branch=master)](https://travis-ci.org/go-macaron/cache)
 
 Middleware cache provides cache management for [Macaron](https://github.com/go-macaron/macaron). It can use many cache adapters, including memory, file, Redis, Memcache, PostgreSQL, MySQL, Ledis and Nodb.
 
 ### Installation
+
+The minimum requirement of Go is 1.6 (*1.7 if using Redis, 1.9 if using MySQL*).
 
 	go get github.com/go-macaron/cache
 
