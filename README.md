@@ -4,7 +4,7 @@ Middleware cache provides cache management for [Macaron](https://github.com/go-m
 
 ### Installation
 
-The minimum requirement of Go is 1.6 (*1.7 if using Redis, 1.9 if using MySQL*).
+The minimum requirement of Go is 1.6 (*1.7 if using Redis, 1.10 if using MySQL*).
 
 	go get github.com/go-macaron/cache
 
