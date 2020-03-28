@@ -89,7 +89,7 @@ func (c *PostgresCacher) Get(key string) interface{} {
 
 	if item.Expire > 0 &&
 		(time.Now().Unix()-item.Created) >= item.Expire {
-		c.Delete(key)
+		_ = c.Delete(key)
 		return nil
 	}
 	return item.Val

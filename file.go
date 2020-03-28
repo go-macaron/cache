@@ -70,7 +70,10 @@ func (c *FileCacher) Put(key string, val interface{}, expire int64) error {
 		return err
 	}
 
-	os.MkdirAll(filepath.Dir(filename), os.ModePerm)
+	err = os.MkdirAll(filepath.Dir(filename), os.ModePerm)
+	if err != nil {
+		return err
+	}
 	return ioutil.WriteFile(filename, data, os.ModePerm)
 }
 
@@ -164,7 +167,7 @@ func (c *FileCacher) startGC() {
 
 		data, err := ioutil.ReadFile(path)
 		if err != nil && !os.IsNotExist(err) {
-			fmt.Errorf("ReadFile: %v", err)
+			return fmt.Errorf("ReadFile: %v", err)
 		}
 
 		item := new(Item)

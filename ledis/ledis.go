@@ -20,9 +20,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unknwon/com"
 	"github.com/siddontang/ledisdb/config"
 	"github.com/siddontang/ledisdb/ledis"
+	"github.com/unknwon/com"
 	"gopkg.in/ini.v1"
 
 	"github.com/go-macaron/cache"
@@ -96,7 +96,7 @@ func (c *LedisCacher) IsExist(key string) bool {
 	if err == nil && count > 0 {
 		return true
 	}
-	c.c.HDel(defaultHSetName, []byte(key))
+	_, _ = c.c.HDel(defaultHSetName, []byte(key))
 	return false
 }
 

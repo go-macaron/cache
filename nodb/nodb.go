@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/unknwon/com"
 	"github.com/lunny/nodb"
 	"github.com/lunny/nodb/config"
+	"github.com/unknwon/com"
 
 	"github.com/go-macaron/cache"
 )
@@ -42,9 +42,9 @@ type NodbCacher struct {
 // If expired is 0, it lives forever.
 func (c *NodbCacher) Put(key string, val interface{}, expire int64) (err error) {
 	var v []byte
-	switch val.(type) {
+	switch val := val.(type) {
 	case []byte:
-		v = val.([]byte)
+		v = val
 	default:
 		v = []byte(com.ToStr(val))
 	}
